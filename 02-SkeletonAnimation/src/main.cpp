@@ -70,6 +70,9 @@ Model modelLamboFrontLeftWheel;
 Model modelLamboFrontRightWheel;
 Model modelLamboRearLeftWheel;
 Model modelLamboRearRightWheel;
+// Modelos Practica1
+Model modelBigFootMask;
+Model modelTotemPole;
 // Dart lego
 Model modelDartLegoBody;
 Model modelDartLegoHead;
@@ -121,6 +124,8 @@ glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixBuzz = glm::mat4(1.0f);
+glm::mat4 modelMatrixBigFootMask = glm::mat4(1.0f);
+glm::mat4 modelMatrixTotemPole = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 float rotBuzzArmLeft = 0.0, rotBuzzForeArmLeft = 0.0, rotBuzzHandLeft = 0.0;
@@ -247,6 +252,12 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 
 	modelAircraft.loadModel("../models/Aircraft_obj/E 45 Aircraft_obj.obj");
 	modelAircraft.setShader(&shaderMulLighting);
+
+	modelBigFootMask.loadModel("../models/Practica1_obj/BigfootMask_Mesh.obj");
+	modelBigFootMask.setShader(&shaderMulLighting);
+
+	modelTotemPole.loadModel("../models/Practica1_obj/TotemPole_InProgress_c.obj");
+	modelTotemPole.setShader(&shaderMulLighting);
 
 	// Eclipse
 	modelEclipseChasis.loadModel("../models/Eclipse/2003eclipse_chasis.obj");
@@ -546,6 +557,8 @@ void destroy() {
 	modelLamboRearRightWheel.destroy();
 	modelLamboRightDor.destroy();
 	modelRock.destroy();
+	modelBigFootMask.destroy();
+	modelTotemPole.destroy();
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
@@ -591,14 +604,14 @@ void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	if (state == GLFW_PRESS) {
 		switch (button) {
 		case GLFW_MOUSE_BUTTON_RIGHT:
-			std::cout << "lastMousePos.y:" << lastMousePosY << std::endl;
+			//std::cout << "lastMousePos.y:" << lastMousePosY << std::endl;
 			break;
 		case GLFW_MOUSE_BUTTON_LEFT:
-			std::cout << "lastMousePos.x:" << lastMousePosX << std::endl;
+			//std::cout << "lastMousePos.x:" << lastMousePosX << std::endl;
 			break;
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			std::cout << "lastMousePos.x:" << lastMousePosX << std::endl;
-			std::cout << "lastMousePos.y:" << lastMousePosY << std::endl;
+			//std::cout << "lastMousePos.x:" << lastMousePosX << std::endl;
+			//std::cout << "lastMousePos.y:" << lastMousePosY << std::endl;
 			break;
 		}
 	}
@@ -642,15 +655,14 @@ bool processInput(bool continueApplication) {
 		enableCountSelected = true;
 
 	// Guardar key frames
-	if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
-			&& glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+	if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+		std::cout << "Esperando Enter para guardar Frames" << std::endl;
 		record = true;
 		if(myfile.is_open())
 			myfile.close();
 		myfile.open(fileName);
 	}
-	if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE
-			&& glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+	if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
 		record = false;
 		myfile.close();
 		if(modelSelected == 1)
@@ -927,6 +939,16 @@ void applicationLoop() {
 		// Forze to enable the unit texture to 0 always ----------------- IMPORTANT
 		glActiveTexture(GL_TEXTURE0);
 
+		// BigFootMask
+		modelMatrixBigFootMask = glm::scale(glm::mat4(1.0), glm::vec3(0.01));
+		modelMatrixBigFootMask = glm::translate(modelMatrixBigFootMask, glm::vec3(400, 20, 20));
+		modelBigFootMask.render(modelMatrixBigFootMask);
+
+		// TotemPole
+		modelMatrixTotemPole = glm::scale(glm::mat4(1.0), glm::vec3(0.01));
+		modelMatrixTotemPole = glm::translate(modelMatrixTotemPole, glm::vec3(200, 40, 50));
+		modelTotemPole.render(modelMatrixTotemPole);
+
 		// Render for the aircraft model
 		modelAircraft.render(modelMatrixAircraft);
 
@@ -1081,6 +1103,7 @@ void applicationLoop() {
 			matrixDartJoints.push_back(rotDartLeftLeg);
 			matrixDartJoints.push_back(rotDartRightLeg);
 			if (saveFrame) {
+				std::cout << "Frames guardados en archivo" << std::endl;
 				appendFrame(myfile, matrixDartJoints);
 				saveFrame = false;
 			}
