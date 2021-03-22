@@ -80,8 +80,10 @@ Model modelDartLegoRightLeg;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
+// Cawboy
+Model cawboyModelAnimate;
 // Terrain model instance
-Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
+Terrain terrain(-1, -1, 200, 8, "../Textures/MapaAlturas1.png");
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint skyboxTextureID;
@@ -112,6 +114,7 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
+glm::mat4 modelMatrixCawboy = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 0;
@@ -273,6 +276,9 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	//Mayow
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
+
+	cawboyModelAnimate.loadModel("../models/cowboy/Character Running.fbx");
+	cawboyModelAnimate.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 
@@ -584,7 +590,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 2)
+		if(modelSelected > 3)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -669,6 +675,14 @@ bool processInput(bool continueApplication) {
 		modelMatrixDart = glm::translate(modelMatrixDart, glm::vec3(-0.02, 0.0, 0.0));
 	else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 		modelMatrixDart = glm::translate(modelMatrixDart, glm::vec3(0.02, 0.0, 0.0));
+	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		modelMatrixCawboy = glm::rotate(modelMatrixCawboy, 0.02f, glm::vec3(0, 1, 0));
+	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		modelMatrixCawboy = glm::rotate(modelMatrixCawboy, -0.02f, glm::vec3(0, 1, 0));
+	if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		modelMatrixCawboy = glm::translate(modelMatrixCawboy, glm::vec3(0.0, 0.0, 0.02));
+	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		modelMatrixCawboy = glm::translate(modelMatrixCawboy, glm::vec3(0.0, 0.0, -0.02));
 
 	glfwPollEvents();
 	return continueApplication;
@@ -689,6 +703,8 @@ void applicationLoop() {
 
 	modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(13.0f, 0.05f, -5.0f));
 	modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+	modelMatrixCawboy = glm::translate(modelMatrixCawboy, glm::vec3(5.0, 0.0, 0.0));
 
 	// Variables to interpolation key frames
 	fileName = "../animaciones/animation_dart_joints.txt";
@@ -762,6 +778,7 @@ void applicationLoop() {
 		glBindTexture(GL_TEXTURE_2D, textureCespedID);
 		shaderMulLighting.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(80, 80)));
 		terrain.setPosition(glm::vec3(100, 0, 100));
+		//terrain.enableWireMode();
 		terrain.render();
 		shaderMulLighting.setVectorFloat2("scaleUV", glm::value_ptr(glm::vec2(0, 0)));
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -869,6 +886,11 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+
+		glm::mat4 modelMatrixCawboyBody = glm::mat4(modelMatrixCawboy);
+		modelMatrixCawboyBody[3][1] = terrain.getHeightTerrain(modelMatrixCawboyBody[3][0], modelMatrixCawboyBody[3][2]);
+		modelMatrixCawboyBody = glm::scale(modelMatrixCawboyBody, glm::vec3(0.004, 0.004, 0.004));
+		cawboyModelAnimate.render(modelMatrixCawboyBody);
 
 		/*******************************************
 		 * Skybox
