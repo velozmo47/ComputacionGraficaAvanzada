@@ -86,6 +86,10 @@ Model modelDartLegoRightLeg;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
+// Cyborg
+Model cyborgModelAnimate;
+// Girl
+Model girlModelAnimate;
 // Modelo buzz
 Model buzzHead;
 Model buzzTorso;
@@ -104,12 +108,19 @@ GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
 GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
 GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
-std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
-		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
-		"../Textures/mp_bloodvalley/blood-valley_up.tga",
-		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
-		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
-		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+//std::string fileNames[6] = { "../Textures/mp_bloodvalley/blood-valley_ft.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_bk.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_up.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_dn.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_rt.tga",
+//		"../Textures/mp_bloodvalley/blood-valley_lf.tga" };
+
+std::string fileNames[6] = { "../Textures/mp_blueskye/right.jpg",
+		"../Textures/mp_blueskye/left.jpg",
+		"../Textures/mp_blueskye/top.jpg",
+		"../Textures/mp_blueskye/bottom.jpg",
+		"../Textures/mp_blueskye/front.jpg",
+		"../Textures/mp_blueskye/back.jpg" };
 
 bool exitApp = false;
 int lastMousePosX, offsetX = 0;
@@ -126,6 +137,8 @@ glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixBuzz = glm::mat4(1.0f);
 glm::mat4 modelMatrixBigFootMask = glm::mat4(1.0f);
 glm::mat4 modelMatrixTotemPole = glm::mat4(1.0f);
+glm::mat4 modelMatrixCyborg = glm::mat4(1.0f);
+glm::mat4 modelMatrixGirl = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 float rotBuzzArmLeft = 0.0, rotBuzzForeArmLeft = 0.0, rotBuzzHandLeft = 0.0;
@@ -310,6 +323,14 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	//Mayow
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
+
+	// Cyborg
+	cyborgModelAnimate.loadModel("../models/cyborg/CyborgEsqueleto.fbx");
+	cyborgModelAnimate.setShader(&shaderMulLighting);
+
+	// Girl
+	girlModelAnimate.loadModel("../models/Practica2_obj/Girl.fbx");
+	girlModelAnimate.setShader(&shaderMulLighting);
 
 	// Buzz 
 	buzzHead.loadModel("../models/buzz/buzzlightyHead.obj");
@@ -639,7 +660,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 4)
+		if(modelSelected > 5)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -741,6 +762,21 @@ bool processInput(bool continueApplication) {
 	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		rotBuzzArmLeft += -0.02;
 
+	if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		modelMatrixGirl = glm::rotate(modelMatrixGirl, 0.02f, glm::vec3(0, 1, 0));
+	else if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		modelMatrixGirl = glm::rotate(modelMatrixGirl, -0.02f, glm::vec3(0, 1, 0));
+	if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, 0.02));
+	else if (modelSelected == 5 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, -0.02));
+	
+	if (modelSelected == 5) {
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			girlModelAnimate.setAnimationIndex(3);
+		else
+			girlModelAnimate.setAnimationIndex(0);
+	}
 	glfwPollEvents();
 	return continueApplication;
 }
@@ -1090,19 +1126,19 @@ void applicationLoop() {
 		 *******************************************/
 		glm::mat4 modelMatrixBuzzBody = glm::mat4(modelMatrixBuzz);
 		modelMatrixBuzzBody = glm::scale(modelMatrixBuzzBody, glm::vec3(2.5));
-		buzzTorso.render(modelMatrixBuzzBody);
+		//buzzTorso.render(modelMatrixBuzzBody);
 		glm::mat4 modelMatrixBuzzLeftArm = glm::mat4(modelMatrixBuzzBody);
 		modelMatrixBuzzLeftArm = glm::translate(modelMatrixBuzzLeftArm, glm::vec3(0.179311, 0.582398, -0.022388));
 		modelMatrixBuzzLeftArm = glm::rotate(modelMatrixBuzzLeftArm, glm::radians(-60.f), glm::vec3(0, 0, 1));
 		modelMatrixBuzzLeftArm = glm::rotate(modelMatrixBuzzLeftArm, rotBuzzArmLeft, glm::vec3(0, 1, 0));
 		modelMatrixBuzzLeftArm = glm::translate(modelMatrixBuzzLeftArm, glm::vec3(-0.179311, -0.582398, 0.022388));
-		buzzArmLeft.render(modelMatrixBuzzLeftArm);
-		glm::mat4 modelMatrixBuzzLeftForeArm = glm::mat4(modelMatrixBuzzLeftArm);
-		buzzForeArmLeft.render(modelMatrixBuzzLeftForeArm);
-		glm::mat4 modelMatrixBuzzLeftHand = glm::mat4 (modelMatrixBuzzLeftForeArm);
-		buzzHandLeft.render(modelMatrixBuzzLeftHand);
-		glm::mat4 modelMatrixBuzzHead = glm::mat4(modelMatrixBuzzBody);
-		buzzHead.render(modelMatrixBuzzHead);
+		//buzzArmLeft.render(modelMatrixBuzzLeftArm);
+		//glm::mat4 modelMatrixBuzzLeftForeArm = glm::mat4(modelMatrixBuzzLeftArm);
+		//buzzForeArmLeft.render(modelMatrixBuzzLeftForeArm);
+		//glm::mat4 modelMatrixBuzzLeftHand = glm::mat4 (modelMatrixBuzzLeftForeArm);
+		//buzzHandLeft.render(modelMatrixBuzzLeftHand);
+		//glm::mat4 modelMatrixBuzzHead = glm::mat4(modelMatrixBuzzBody);
+		//buzzHead.render(modelMatrixBuzzHead);
 
 		/*******************************************
 		 * Custom Anim objects obj
@@ -1111,6 +1147,15 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+
+		//glm::mat4 modelMatrixCyborgBody = glm::mat4(modelMatrixCyborg);
+		//modelMatrixCyborgBody = glm::scale(modelMatrixCyborgBody, glm::vec3(0.01, 0.01, 0.01));
+		//cyborgModelAnimate.render(modelMatrixCyborgBody);
+
+		glm::mat4 modelMatrixGirlBody = glm::mat4(modelMatrixGirl);
+		//modelMatrixGirlBody = glm::translate(modelMatrixGirlBody, glm::vec3(0.0, 0.0, 5.0));
+		modelMatrixGirlBody = glm::scale(modelMatrixGirlBody, glm::vec3(0.01, 0.01, 0.01));
+		girlModelAnimate.render(modelMatrixGirlBody);
 
 		/*******************************************
 		 * Skybox
