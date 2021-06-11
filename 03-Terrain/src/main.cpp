@@ -82,6 +82,8 @@ Model modelDartLegoRightLeg;
 Model mayowModelAnimate;
 // Cawboy
 Model cawboyModelAnimate;
+// Girl
+Model girlModelAnimate;
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 8, "../Textures/MapaAlturas1.png");
 
@@ -115,6 +117,7 @@ glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixCawboy = glm::mat4(1.0f);
+glm::mat4 modelMatrixGirl = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 0;
@@ -279,6 +282,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 
 	cawboyModelAnimate.loadModel("../models/cowboy/Character Running.fbx");
 	cawboyModelAnimate.setShader(&shaderMulLighting);
+
+	// Girl
+	girlModelAnimate.loadModel("../models/Practica2_obj/Girl.fbx");
+	girlModelAnimate.setShader(&shaderMulLighting);
 
 	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 
@@ -590,7 +597,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 3)
+		if(modelSelected > 4)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -683,6 +690,35 @@ bool processInput(bool continueApplication) {
 		modelMatrixCawboy = glm::translate(modelMatrixCawboy, glm::vec3(0.0, 0.0, 0.02));
 	else if (modelSelected == 3 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 		modelMatrixCawboy = glm::translate(modelMatrixCawboy, glm::vec3(0.0, 0.0, -0.02));
+
+	if (modelSelected == 4)
+	{
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::rotate(modelMatrixGirl, 0.02f, glm::vec3(0, 1, 0));
+		}
+		else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::rotate(modelMatrixGirl, -0.02f, glm::vec3(0, 1, 0));
+		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, 0.04));
+		}
+		else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, -0.04));
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			girlModelAnimate.setAnimationIndex(3);
+		}
+		else
+		{
+			girlModelAnimate.setAnimationIndex(0);
+		}
+	}
 
 	glfwPollEvents();
 	return continueApplication;
@@ -887,10 +923,26 @@ void applicationLoop() {
 		mayowModelAnimate.setAnimationIndex(0);
 		mayowModelAnimate.render(modelMatrixMayowBody);
 
+		glm::vec3 ejey = terrain.getNormalTerrain(modelMatrixCawboy[3][0], modelMatrixCawboy[3][2]);
+		glm::vec3 ejex = glm::vec3(modelMatrixCawboy[0]);
+		glm::vec3 ejez = glm::normalize(glm::cross(ejex, ejey));
+		modelMatrixCawboy[1] = glm::vec4(ejey, 0.0);
+		modelMatrixCawboy[2] = glm::vec4(ejez, 0.0);
 		glm::mat4 modelMatrixCawboyBody = glm::mat4(modelMatrixCawboy);
 		modelMatrixCawboyBody[3][1] = terrain.getHeightTerrain(modelMatrixCawboyBody[3][0], modelMatrixCawboyBody[3][2]);
 		modelMatrixCawboyBody = glm::scale(modelMatrixCawboyBody, glm::vec3(0.004, 0.004, 0.004));
 		cawboyModelAnimate.render(modelMatrixCawboyBody);
+
+		// Girl
+		ejey = terrain.getNormalTerrain(modelMatrixGirl[3][0], modelMatrixGirl[3][2]);
+		ejex = glm::vec3(modelMatrixGirl[0]);
+		ejez = glm::normalize(glm::cross(ejex, ejey));
+		modelMatrixGirl[1] = glm::vec4(ejey, 0.0);
+		modelMatrixGirl[2] = glm::vec4(ejez, 0.0);
+		glm::mat4 modelMatrixGirlBody = glm::mat4(modelMatrixGirl);
+		modelMatrixGirlBody[3][1] = terrain.getHeightTerrain(modelMatrixGirlBody[3][0], modelMatrixGirlBody[3][2]);
+		modelMatrixGirlBody = glm::scale(modelMatrixGirlBody, glm::vec3(0.01, 0.01, 0.01));
+		girlModelAnimate.render(modelMatrixGirlBody);
 
 		/*******************************************
 		 * Skybox
