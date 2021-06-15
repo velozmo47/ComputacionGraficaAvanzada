@@ -85,7 +85,7 @@ Model cawboyModelAnimate;
 // Girl
 Model girlModelAnimate;
 // Terrain model instance
-Terrain terrain(-1, -1, 200, 8, "../Textures/MapaAlturas1.png");
+Terrain terrain(-1, -1, 200, 6, "../Textures/MapaAlturas1.png");
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint skyboxTextureID;
