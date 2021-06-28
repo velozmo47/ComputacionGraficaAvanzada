@@ -3,6 +3,12 @@
 // y blender => -z opengl
 // z blender => y opengl
 
+// MATRIX 4
+// [ RIGHTx,	RIGHTy,		RIGHTz,		RIGHTw		] Vector Right
+// [ UPx,		UPy			UPz,		UPw			] Vector UP
+// [ FORWARDx,	FORWARDy,	FORWARDz,	FORWARDw	] Vector FORWARD
+// [ POSITIONx, POSITIONy,	POSITIONz,	POSITIONw	]
+
 #define _USE_MATH_DEFINES
 #include <cmath>
 //glew include

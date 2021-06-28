@@ -54,7 +54,8 @@ Shader shaderMulLighting;
 //Shader para el terreno
 Shader shaderTerrain;
 
-std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
+std::shared_ptr<ThirdPersonCamera> thirdPersonCamera(new ThirdPersonCamera());
+std::shared_ptr<FirstPersonCamera> firstPersonCamera(new FirstPersonCamera());
 
 Sphere skyboxSphere(20, 20);
 
@@ -87,6 +88,8 @@ Model modelLampPost2;
 // Model animate instance
 // Mayow
 Model mayowModelAnimate;
+// Girl
+Model girlModelAnimate;
 // Terrain model instance
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
 
@@ -120,6 +123,7 @@ glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
 glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
+glm::mat4 modelMatrixGirl = glm::mat4(1.0f);
 
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 int modelSelected = 2;
@@ -162,6 +166,11 @@ std::vector<float> lamp2Orientation = {21.37 + 90, -65.0 + 90};
 
 double deltaTime;
 double currTime, lastTime;
+float distanceFromTarget = 3.0f;
+
+int animationIndex = 1;
+bool useFirstPersonCamera;
+bool enableChangeCamera;
 
 // Se definen todos las funciones.
 void reshapeCallback(GLFWwindow *Window, int widthRes, int heightRes);
@@ -211,6 +220,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+	glfwSetScrollCallback(window, scrollCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	// Init glew
@@ -301,7 +311,15 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	mayowModelAnimate.loadModel("../models/mayow/personaje2.fbx");
 	mayowModelAnimate.setShader(&shaderMulLighting);
 
-	camera->setPosition(glm::vec3(0.0, 0.0, 10.0));
+	thirdPersonCamera->setPosition(glm::vec3(0.0, 0.0, 10.0));
+	thirdPersonCamera->setDistanceFromTarget(distanceFromTarget);
+	thirdPersonCamera->setSensitivity(1.0);
+
+	firstPersonCamera->setPosition(glm::vec3(0.0, 3.0, 4.0));
+
+	// Girl
+	girlModelAnimate.loadModel("../models/Practica2_obj/Girl.fbx");
+	girlModelAnimate.setShader(&shaderMulLighting);
 
 	// Definimos el tamanio de la imagen
 	int imageWidth, imageHeight;
@@ -698,6 +716,7 @@ void destroy() {
 
 	// Custom objects animate
 	mayowModelAnimate.destroy();
+	girlModelAnimate.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -758,21 +777,42 @@ void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 	}
 }
 
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	distanceFromTarget -= yoffset;
+	thirdPersonCamera->setDistanceFromTarget(distanceFromTarget);
+}
+
 bool processInput(bool continueApplication) {
 	if (exitApp || glfwWindowShouldClose(window) != 0) {
 		return false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->moveFrontCamera(true, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->moveFrontCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->moveRightCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->moveRightCamera(true, deltaTime);
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+	if (useFirstPersonCamera)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			firstPersonCamera->moveFrontCamera(true, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			firstPersonCamera->moveFrontCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			firstPersonCamera->moveRightCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			firstPersonCamera->moveRightCamera(true, deltaTime);
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+			firstPersonCamera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+	}
+	else
+	{
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		{
+			thirdPersonCamera->mouseMoveCamera(offsetX, 0, deltaTime);
+		}
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+		{
+			thirdPersonCamera->mouseMoveCamera(0, offsetY, deltaTime);
+		}
+	}
+
 	offsetX = 0;
 	offsetY = 0;
 
@@ -780,7 +820,7 @@ bool processInput(bool continueApplication) {
 	if (enableCountSelected && glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS){
 		enableCountSelected = false;
 		modelSelected++;
-		if(modelSelected > 2)
+		if(modelSelected > 3)
 			modelSelected = 0;
 		if(modelSelected == 1)
 			fileName = "../animaciones/animation_dart_joints.txt";
@@ -790,6 +830,20 @@ bool processInput(bool continueApplication) {
 	}
 	else if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE)
 		enableCountSelected = true;
+
+	// Cambiar de camara
+	if (enableChangeCamera && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		enableChangeCamera = false;
+		useFirstPersonCamera = !useFirstPersonCamera;
+		std::cout << "Usar camara primera persona:" << useFirstPersonCamera << std::endl;
+		firstPersonCamera->setPosition(thirdPersonCamera->getPosition());
+		firstPersonCamera->setCameraTarget(thirdPersonCamera->getCameraTarget());
+	}
+	else if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_K) == GLFW_RELEASE)
+	{
+		enableChangeCamera = true;
+	}
 
 	// Guardar key frames
 	if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
@@ -869,12 +923,49 @@ bool processInput(bool continueApplication) {
 	// Mayow animate model movements
 	if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
 		modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(1.0f), glm::vec3(0, 1, 0));
+		animationIndex = 1;
 	}else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
 		modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-1.0f), glm::vec3(0, 1, 0));
+		animationIndex = 1;
 	}if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
 		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, 0.02));
+		animationIndex = 0;
 	}else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
 		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0, 0, -0.02));
+		animationIndex = 0;
+	}
+
+	if (modelSelected == 3)
+	{
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::rotate(modelMatrixGirl, 0.02f, glm::vec3(0, 1, 0));
+		}
+		else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::rotate(modelMatrixGirl, -0.02f, glm::vec3(0, 1, 0));
+		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, 0.04));
+		}
+		else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, -0.04));
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			girlModelAnimate.setAnimationIndex(3);
+		}
+		else
+		{
+			girlModelAnimate.setAnimationIndex(2);
+		}
+	}
+	else
+	{
+		girlModelAnimate.setAnimationIndex(2);
 	}
 
 	glfwPollEvents();
@@ -883,6 +974,11 @@ bool processInput(bool continueApplication) {
 
 void applicationLoop() {
 	bool psi = true;
+
+	glm::mat4 view;
+	glm::vec3 axis;
+	glm::vec3 target;
+	float angleTarget;
 
 	matrixModelRock = glm::translate(matrixModelRock, glm::vec3(-3.0, 0.0, 2.0));
 
@@ -922,7 +1018,51 @@ void applicationLoop() {
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
-		glm::mat4 view = camera->getViewMatrix();
+		
+		if (modelSelected == 1)
+		{
+			axis = glm::axis(glm::quat_cast(modelMatrixDart));
+			angleTarget = glm::angle(glm::quat_cast(modelMatrixDart));
+			target = modelMatrixDart[3];
+		}
+		else if (modelSelected == 2)
+		{
+			axis = glm::axis(glm::quat_cast(modelMatrixMayow));
+			angleTarget = glm::angle(glm::quat_cast(modelMatrixMayow));
+			target = modelMatrixMayow[3];
+		}
+		else if (modelSelected == 3)
+		{
+			axis = glm::axis(glm::quat_cast(modelMatrixGirl));
+			angleTarget = glm::angle(glm::quat_cast(modelMatrixGirl));
+			target = modelMatrixGirl[3];
+		}
+
+		if (std::isnan(angleTarget)) // Si no es un número
+		{
+			angleTarget = 0.0;
+		}
+		if (axis.y < 0)
+		{
+			angleTarget = -angleTarget;
+		}
+		if (modelSelected == 1)
+		{
+			angleTarget -= glm::radians(90.0f);
+		}
+
+		thirdPersonCamera->setCameraTarget(target);
+		thirdPersonCamera->setAngleTarget(angleTarget);
+		thirdPersonCamera->updateCamera();
+
+		glm::mat4 view;
+
+		if (useFirstPersonCamera) {
+			view = firstPersonCamera->getViewMatrix();
+		}
+		else {
+			view = thirdPersonCamera->getViewMatrix();
+		}
 
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
@@ -947,7 +1087,12 @@ void applicationLoop() {
 		/*******************************************
 		 * Propiedades Luz direccional
 		 *******************************************/
-		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		if (useFirstPersonCamera) {
+			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(firstPersonCamera->getPosition()));
+		}
+		else {
+			shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(thirdPersonCamera->getPosition()));
+		}
 		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
 		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
@@ -956,7 +1101,12 @@ void applicationLoop() {
 		/*******************************************
 		 * Propiedades Luz direccional Terrain
 		 *******************************************/
-		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		if (useFirstPersonCamera) {
+			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(firstPersonCamera->getPosition()));
+		}
+		else {
+			shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(thirdPersonCamera->getPosition()));
+		}
 		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
@@ -1184,7 +1334,13 @@ void applicationLoop() {
 		modelMatrixMayow[3][1] = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
 		glm::mat4 modelMatrixMayowBody = glm::mat4(modelMatrixMayow);
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021, 0.021, 0.021));
+		mayowModelAnimate.setAnimationIndex(animationIndex);
 		mayowModelAnimate.render(modelMatrixMayowBody);
+
+		modelMatrixGirl[3][1] = terrain.getHeightTerrain(modelMatrixGirl[3][0], modelMatrixGirl[3][2]);
+		glm::mat4 modelMatrixGirlBody = glm::mat4(modelMatrixGirl);
+		modelMatrixGirlBody = glm::scale(modelMatrixGirlBody, glm::vec3(0.01, 0.01, 0.01));
+		girlModelAnimate.render(modelMatrixGirlBody);
 
 		/*******************************************
 		 * Skybox
@@ -1261,6 +1417,7 @@ void applicationLoop() {
 
 		// Constantes de animaciones
 		rotHelHelY += 0.5;
+		animationIndex = 1;
 
 		/*******************************************
 		 * State machines
