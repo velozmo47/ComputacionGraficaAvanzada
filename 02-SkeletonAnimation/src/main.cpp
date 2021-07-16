@@ -773,7 +773,7 @@ bool processInput(bool continueApplication) {
 	
 	if (modelSelected == 5) {
 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			girlModelAnimate.setAnimationIndex(3);
+			girlModelAnimate.setAnimationIndex(1);
 		else
 			girlModelAnimate.setAnimationIndex(0);
 	}
