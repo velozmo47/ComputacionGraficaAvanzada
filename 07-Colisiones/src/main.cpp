@@ -2,6 +2,7 @@
 #include <cmath>
 //glew include
 #include <GL/glew.h>
+#include <algorithm>
 
 //std includes
 #include <string>
@@ -61,7 +62,8 @@ Shader shaderMulLighting;
 Shader shaderTerrain;
 
 std::shared_ptr<Camera> camera(new ThirdPersonCamera());
-float distanceFromTarget = 7.0;
+float distanceFromTarget = 2.0;
+float distanceFromTargetOffset;
 
 Sphere skyboxSphere(20, 20);
 Box boxCollider;
@@ -78,9 +80,12 @@ Model modelLampPost2;
 Model girlModelAnimate;
 Terrain terrain(-1, -1, 200, 8, "../Textures/heightmap.png");
 
-Model modelCell;
+Model modelNodo;
+Model modelEsfera;
+Model modelPared;
 
-Maze maze(10, 10, 1, 2.0f);
+Maze maze(5, 5, 1, 5.0f);
+float elapsedTime;
 
 GLuint textureCespedID, textureWallID, textureWindowID, textureHighwayID, textureLandingPadID;
 GLuint textureTerrainBackgroundID, textureTerrainRID, textureTerrainGID, textureTerrainBID, textureTerrainBlendMapID;
@@ -107,6 +112,7 @@ int lastMousePosY, offsetY = 0;
 
 // Model matrix definitions
 glm::mat4 modelMatrixGirl = glm::mat4(1.0f);
+glm::vec3 targetOffset = glm::vec3(-0.35f, 1.5f, 0);
 
 int animationIndex = 0;
 int modelSelected = 0;
@@ -236,8 +242,16 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	modelLampPost2.setShader(&shaderMulLighting);
 
 	//Model cell
-	modelCell.loadModel("../models/ProyectoFinal/modelCell.obj");
-	modelCell.setShader(&shaderMulLighting);
+	modelNodo.loadModel("../models/ProyectoFinal/modelCell.obj");
+	modelNodo.setShader(&shaderMulLighting);
+
+	//Esfera
+	modelEsfera.loadModel("../models/ProyectoFinal/modelEsfera.obj");
+	modelEsfera.setShader(&shaderMulLighting);
+
+	//Model pasajeSur
+	modelPared.loadModel("../models/ProyectoFinal/modelPared.obj");
+	modelPared.setShader(&shaderMulLighting);
 
 	// Girl
 	girlModelAnimate.loadModel("../models/Practica2_obj/Girl.fbx");
@@ -625,7 +639,9 @@ void destroy() {
 
 	// Custom objects animate
 	girlModelAnimate.destroy();
-	modelCell.destroy();
+	modelNodo.destroy();
+	modelPared.destroy();
+	modelEsfera.destroy();
 
 	// Textures Delete
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -697,8 +713,10 @@ bool processInput(bool continueApplication) {
 	}
 
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, 0.0, deltaTime);
+		modelMatrixGirl = glm::rotate(modelMatrixGirl,(float) -(offsetX * deltaTime), glm::vec3(0, 1, 0));
+		//camera->mouseMoveCamera(offsetX, 0.0, deltaTime);
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+		//modelMatrixGirl = glm::rotate(modelMatrixGirl,(float) (offsetY * deltaTime), glm::vec3(1, 0, 0));
 		camera->mouseMoveCamera(0.0, offsetY, deltaTime);
 	offsetX = 0;
 	offsetY = 0;
@@ -723,24 +741,24 @@ bool processInput(bool continueApplication) {
 
 	if (modelSelected == 0)
 	{
-		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 		{
 			modelMatrixGirl = glm::rotate(modelMatrixGirl, 0.02f, glm::vec3(0, 1, 0));
 		}
-		else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		{
 			modelMatrixGirl = glm::rotate(modelMatrixGirl, -0.02f, glm::vec3(0, 1, 0));
 		}
-		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, 0.04));
 		}
-		else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		{
 			modelMatrixGirl = glm::translate(modelMatrixGirl, glm::vec3(0.0, 0.0, -0.04));
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		{
 			girlModelAnimate.setAnimationIndex(0);
 		}
@@ -790,7 +808,9 @@ void applicationLoop() {
 		{
 			axis = glm::axis(glm::quat_cast(modelMatrixGirl));
 			angleTarget = glm::angle(glm::quat_cast(modelMatrixGirl));
-			target = modelMatrixGirl[3];
+			//angleTarget = glm::angle(glm::quat_cast(glm::mat4(1.0)));
+			//target = modelMatrixGirl[3] + glm::vec4(-0.35, 1.5, 0, 1);
+			target = modelMatrixGirl[3] + modelMatrixGirl[0] * targetOffset.x + modelMatrixGirl[1] * targetOffset.y;
 		}
 
 		if (std::isnan(angleTarget))
@@ -828,46 +848,48 @@ void applicationLoop() {
 		 * Propiedades Luz direccional
 		 *******************************************/
 		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.15)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(.1)));
 		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
 		 * Propiedades Luz direccional Terrain
 		 *******************************************/
 		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
-		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.05, 0.05, 0.05)));
-		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
-		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.15)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.1)));
 		shaderTerrain.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
 		/*******************************************
 		 * Propiedades SpotLights
 		 *******************************************/
-		glm::vec3 spotPosition = glm::vec3(modelMatrixGirl[3][0], 5.0, modelMatrixGirl[3][2]);
+		glm::vec3 spotPosition = glm::vec3(modelMatrixGirl[3]) + glm::vec3(0.0, 1.5, 0.0);
+		glm::vec3 dirSpotlight = camera->getFront();
+		
 		shaderMulLighting.setInt("spotLightCount", 1);
 		shaderTerrain.setInt("spotLightCount", 1);
-		shaderMulLighting.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.0, 0.0, 0.0)));
-		shaderMulLighting.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(0.2, 0.3, 0.2)));
-		shaderMulLighting.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLighting.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.1)));
+		shaderMulLighting.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(0.4)));
+		shaderMulLighting.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0)));
 		shaderMulLighting.setVectorFloat3("spotLights[0].position", glm::value_ptr(spotPosition));
-		shaderMulLighting.setVectorFloat3("spotLights[0].direction", glm::value_ptr(glm::vec3(0, -1, 0)));
+		shaderMulLighting.setVectorFloat3("spotLights[0].direction", glm::value_ptr(dirSpotlight));
 		shaderMulLighting.setFloat("spotLights[0].constant", 1.0);
 		shaderMulLighting.setFloat("spotLights[0].linear", 0.074);
 		shaderMulLighting.setFloat("spotLights[0].quadratic", 0.03);
 		shaderMulLighting.setFloat("spotLights[0].cutOff", cos(glm::radians(12.5f)));
-		shaderMulLighting.setFloat("spotLights[0].outerCutOff", cos(glm::radians(15.0f)));
-		shaderTerrain.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.0, 0.0, 0.0)));
-		shaderTerrain.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(0.2, 0.3, 0.2)));
-		shaderTerrain.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLighting.setFloat("spotLights[0].outerCutOff", cos(glm::radians(40.0f)));
+		shaderTerrain.setVectorFloat3("spotLights[0].light.ambient", glm::value_ptr(glm::vec3(0.1)));
+		shaderTerrain.setVectorFloat3("spotLights[0].light.diffuse", glm::value_ptr(glm::vec3(1)));
+		shaderTerrain.setVectorFloat3("spotLights[0].light.specular", glm::value_ptr(glm::vec3(0.0)));
 		shaderTerrain.setVectorFloat3("spotLights[0].position", glm::value_ptr(spotPosition));
-		shaderTerrain.setVectorFloat3("spotLights[0].direction", glm::value_ptr(glm::vec3(0, -1, 0)));
+		shaderTerrain.setVectorFloat3("spotLights[0].direction", glm::value_ptr(dirSpotlight));
 		shaderTerrain.setFloat("spotLights[0].constant", 1.0);
 		shaderTerrain.setFloat("spotLights[0].linear", 0.074);
 		shaderTerrain.setFloat("spotLights[0].quadratic", 0.03);
 		shaderTerrain.setFloat("spotLights[0].cutOff", cos(glm::radians(12.5f)));
-		shaderTerrain.setFloat("spotLights[0].outerCutOff", cos(glm::radians(15.0f)));
+		shaderTerrain.setFloat("spotLights[0].outerCutOff", cos(glm::radians(40.0f)));
 
 		/*******************************************
 		 * Propiedades PointLights
@@ -1049,6 +1071,26 @@ void applicationLoop() {
 			addOrUpdateColliders(collidersOBB, "lamp2" + std::to_string(i), lampCollider, modelMatrixColliderLamp);
 		}
 
+		// Colision de la camara, no se ve porque la cámara está dentro de la esfera
+		AbstractModel::SBB cameraCollider;
+		glm::mat4 modelMatrixColliderCamera = glm::mat4(1.0);
+		modelMatrixColliderCamera[3] = glm::vec4(glm::vec3(modelMatrixGirl[3]) + glm::vec3(modelMatrixGirl[0]) * targetOffset.x + glm::vec3(modelMatrixGirl[1]) * targetOffset.y + camera->getFront() * (-distanceFromTarget + 1), 1);
+		//modelMatrixColliderCamera[3] = modelMatrixGirl[3] + glm::vec4(0, 1.5, 0, 1);
+		modelMatrixColliderCamera = glm::translate(modelMatrixColliderCamera, modelEsfera.getSbb().c);
+		cameraCollider.c = glm::vec3(modelMatrixColliderCamera[3]);
+		cameraCollider.ratio = modelEsfera.getSbb().ratio * 0.6;
+		addOrUpdateColliders(collidersSBB, "camera", cameraCollider, modelMatrixColliderCamera);
+
+
+		//// Collider de la roca
+		//AbstractModel::SBB rockCollider;
+		//glm::mat4 modelMatrixColliderRock = glm::mat4(matrixModelRock);
+		//modelMatrixColliderRock = glm::scale(modelMatrixColliderRock, glm::vec3(1.0, 1.0, 1.0));
+		//modelMatrixColliderRock = glm::translate(modelMatrixColliderRock, modelRock.getSbb().c);
+		//rockCollider.c = modelMatrixColliderRock[3];
+		//rockCollider.ratio = modelRock.getSbb().ratio * 1.0;
+		//addOrUpdateColliders(collidersSBB, "rock", rockCollider, matrixModelRock);
+
 		//Collider de Girl
 		AbstractModel::OBB girlCollider;
 		glm::mat4 modelMatrixColliderGirl = glm::mat4(modelMatrixGirl);
@@ -1060,29 +1102,32 @@ void applicationLoop() {
 		girlCollider.e = girlModelAnimate.getObb().e * glm::vec3(0.005, 0.015, 0.01) * glm::vec3(0.785, 0.785, 0.785);
 		addOrUpdateColliders(collidersOBB, "girl", girlCollider, modelMatrixGirl);
 
+
+		maze.OnUserUpdate(modelNodo, modelPared, collidersOBB);
+
 		/*******************************************
 		 * Render de colliders
 		 *******************************************/
-		for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4> >::iterator it =
-				collidersOBB.begin(); it != collidersOBB.end(); it++) {
-			glm::mat4 matrixCollider = glm::mat4(1.0);
-			matrixCollider = glm::translate(matrixCollider, std::get<0>(it->second).c);
-			matrixCollider = matrixCollider * glm::mat4(std::get<0>(it->second).u);
-			matrixCollider = glm::scale(matrixCollider, std::get<0>(it->second).e * 2.0f);
-			boxCollider.setColor(glm::vec4(1.0, 1.0, 1.0, 1.0));
-			boxCollider.enableWireMode();
-			boxCollider.render(matrixCollider);
-		}
+		//for (std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4> >::iterator it =
+		//		collidersOBB.begin(); it != collidersOBB.end(); it++) {
+		//	glm::mat4 matrixCollider = glm::mat4(1.0);
+		//	matrixCollider = glm::translate(matrixCollider, std::get<0>(it->second).c);
+		//	matrixCollider = matrixCollider * glm::mat4(std::get<0>(it->second).u);
+		//	matrixCollider = glm::scale(matrixCollider, std::get<0>(it->second).e * 2.0f);
+		//	boxCollider.setColor(glm::vec4(1.0, 1.0, 1.0, 1.0));
+		//	boxCollider.enableWireMode();
+		//	boxCollider.render(matrixCollider);
+		//}
 
-		for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4> >::iterator it =
-				collidersSBB.begin(); it != collidersSBB.end(); it++) {
-			glm::mat4 matrixCollider = glm::mat4(1.0);
-			matrixCollider = glm::translate(matrixCollider, std::get<0>(it->second).c);
-			matrixCollider = glm::scale(matrixCollider, glm::vec3(std::get<0>(it->second).ratio * 2.0f));
-			sphereCollider.setColor(glm::vec4(1.0, 1.0, 1.0, 1.0));
-			sphereCollider.enableWireMode();
-			sphereCollider.render(matrixCollider);
-		}
+		//for (std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4> >::iterator it =
+		//		collidersSBB.begin(); it != collidersSBB.end(); it++) {
+		//	glm::mat4 matrixCollider = glm::mat4(1.0);
+		//	matrixCollider = glm::translate(matrixCollider, std::get<0>(it->second).c);
+		//	matrixCollider = glm::scale(matrixCollider, glm::vec3(std::get<0>(it->second).ratio * 2.0f));
+		//	sphereCollider.setColor(glm::vec4(1.0, 1.0, 1.0, 1.0));
+		//	sphereCollider.enableWireMode();
+		//	sphereCollider.render(matrixCollider);
+		//}
 
 		// Esto es para ilustrar la transformacion inversa de los coliders
 		/*glm::vec3 cinv = glm::inverse(mayowCollider.u) * glm::vec4(rockCollider.c, 1.0);
@@ -1119,7 +1164,7 @@ void applicationLoop() {
 			{
 				if (it != jt && testOBBOBB(std::get<0>(it->second), std::get<0>(jt->second)))
 				{
-					std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
+					//std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
 					isCollision = true;
 				}
 			}
@@ -1138,7 +1183,7 @@ void applicationLoop() {
 			{
 				if (it != jt && testSphereSphereIntersection (std::get<0>(it->second), std::get<0>(jt->second)))
 				{
-					std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
+					//std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
 					isCollision = true;
 				}
 			}
@@ -1155,10 +1200,15 @@ void applicationLoop() {
 				std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4> >::iterator jt =
 				collidersOBB.begin(); jt != collidersOBB.end() && !isCollision; jt++)
 			{
+
 				if (testSphereOBox(std::get<0>(it->second), std::get<0>(jt->second)))
 				{
-					std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
+					//std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
 					isCollision = true;
+					if (it->first == "camera" && jt->first == "girl")
+					{
+						isCollision = false;
+					}
 					addOrUpdateCollisionDetection(collisionDetection, jt->first, isCollision);
 				}
 			}
@@ -1182,6 +1232,7 @@ void applicationLoop() {
 				{
 					if (it->first.compare("girl") == 0)
 					{
+					//	std::cout << "Collision " << it->first << " with " << jt->first << std::endl;
 						modelMatrixGirl = std::get<1>(it->second);
 					}
 				}
@@ -1199,6 +1250,34 @@ void applicationLoop() {
 						modelMatrixGirl = std::get<1>(jt->second);
 					}
 				}
+
+				if (jt->first == "camera")
+				{
+					if (colIt->second)
+					{
+						if (distanceFromTargetOffset > -1.5)
+						{
+							distanceFromTargetOffset -= deltaTime * 5;
+						}
+						else
+						{
+							distanceFromTargetOffset = -1.5;
+						}
+					}
+					else
+					{
+						if (distanceFromTargetOffset < 0)
+						{
+							distanceFromTargetOffset += deltaTime * 5;
+						}
+						else
+						{
+							distanceFromTargetOffset = 0;
+						}
+					}
+					camera->setDistanceFromTarget(distanceFromTarget + distanceFromTargetOffset);
+					//std::cout << distanceFromTarget + distanceFromTargetOffset << std::endl;
+				}
 			}
 		}
 
@@ -1211,7 +1290,7 @@ void applicationLoop() {
 			float tray;
 			if (raySphereIntersect(oriGirl, tarGirl, rayDirectionGirl, std::get<0>(it->second), tray))
 			{
-				std::cout << "Collision " << it->first << " with " << "Ray" << std::endl;
+				//std::cout << "Collision " << it->first << " with " << "Ray" << std::endl;
 			}
 		}
 
@@ -1220,7 +1299,7 @@ void applicationLoop() {
 		{
 			if (testIntersectRayOBB(oriGirl, tarGirl, rayDirectionGirl, std::get<0>(it->second)))
 			{
-				std::cout << "Colision " << it->first << " with " << "Ray" << std::endl;
+				//std::cout << "Colision " << it->first << " with " << "Ray" << std::endl;
 			}
 		}
 		// Constantes de animaciones
@@ -1229,7 +1308,6 @@ void applicationLoop() {
 		/*******************************************
 		 * State machines
 		 *******************************************/
-		maze.OnUserUpdate(0, modelCell);
 
 		glfwSwapBuffers(window);
 	}

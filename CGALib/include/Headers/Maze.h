@@ -26,6 +26,7 @@
 #endif
 #endif
 
+#include "Headers/Colisiones.h"
 #include "Headers/Model.h"
 #include <iostream>
 #include <stack>
@@ -37,7 +38,7 @@ private:
 	int  m_nMazeWidth;  // 40
 	int  m_nMazeHeight; // 25
 	int* m_maze;
-	
+
 	// Some bit fields for convenience
 	enum
 	{
@@ -47,8 +48,8 @@ private:
 		CELL_PATH_W = 0x08,
 		CELL_VISITED = 0x10,
 	};
-	
-	
+
+
 	// Algorithm variables
 	int  m_nVisitedCells;
 	stack<pair<int, int>> m_stack;	// (x, y) coordinate pairs
@@ -57,7 +58,9 @@ private:
 
 public:
 	Maze(int m_nMazeWidth, int m_nMazeHeight, int m_nPathWidth, float cellSize);
-	bool OnUserUpdate(float fElapsedTime, Model& model);
+	bool OnUserUpdate(Model& modelNodo, Model& modelPared, std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4> >& collidersOBB);
+	void CrearCollider(Model& modelo, string nombre, glm::mat4 modelMatrix, std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4> >& collidersOBB);
+	glm::mat4 DibujarModelo(Model& modelo, float rotacion, glm::vec3 posicion);
 };
 
 #endif /* MAZE_H */
